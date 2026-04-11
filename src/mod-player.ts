@@ -270,7 +270,7 @@ export class ModPlayer {
                 break;
             case "note":
                 for (const callback of this.noteCallbacks) {
-                    callback(data.channel, data.sample, data.volume, data.period, data.effect);
+                   callback(data.channel, data.sample, data.volume, data.period, data.effect);
                 }
                 break;
             case "playbackState":
