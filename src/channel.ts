@@ -20,6 +20,7 @@ type PendingRowChanges = {
     instrument?: Instrument | null;
     volume?: number;
     period?: number;
+    portamentoTargetPeriod?: number;
     sampleIndex?: number;
     refreshCurrentPeriod: boolean;
     publishNote: boolean;
@@ -28,6 +29,7 @@ type PendingRowChanges = {
 class ChannelState {
     instrument: Instrument | null = null;
     period: number | null = null;
+    portamentoTargetPeriod: number | null = null;
     sampleSpeed = 0.0;
     sampleIndex = 0;
     volume = 64;
@@ -49,13 +51,13 @@ class ChannelState {
     lastPortamentoSpeed = 0;
     lastVibratoSpeed = 0;
     lastVibratoDepth = 0;
-    lastVolumeSlide = 0;
     vibratoWaveform = 0;
     vibratoRetrigger = true;
 
     reset() {
         this.instrument = null;
         this.period = null;
+        this.portamentoTargetPeriod = null;
         this.sampleSpeed = 0;
         this.sampleIndex = 0;
         this.volume = 64;
@@ -77,7 +79,6 @@ class ChannelState {
         this.lastPortamentoSpeed = 0;
         this.lastVibratoSpeed = 0;
         this.lastVibratoDepth = 0;
-        this.lastVolumeSlide = 0;
         this.vibratoWaveform = 0;
         this.vibratoRetrigger = true;
     }
@@ -159,15 +160,18 @@ export class Channel {
 
         if (state.periodDelta !== null && state.currentPeriod !== null && state.period !== null) {
             if (state.portamento) {
-                if (state.currentPeriod !== state.period) {
-                    const sign = Math.sign(state.period - state.currentPeriod);
-                    const distance = Math.abs(state.currentPeriod - state.period);
+                const targetPeriod = state.portamentoTargetPeriod ?? state.period;
+                if (state.currentPeriod !== targetPeriod) {
+                    const sign = Math.sign(targetPeriod - state.currentPeriod);
+                    const distance = Math.abs(state.currentPeriod - targetPeriod);
                     const diff = Math.min(distance, state.periodDelta);
                     state.currentPeriod += sign * diff;
+                    state.period = state.currentPeriod;
                     pitchChangedThisTick = true;
                 }
             } else {
                 state.currentPeriod += state.periodDelta;
+                state.period = state.currentPeriod;
                 pitchChangedThisTick = true;
             }
         }
@@ -187,7 +191,7 @@ export class Channel {
             this.applyDeferredRowChanges();
         }
 
-        if (!pitchChangedThisTick && state.period !== null) {
+        if (!pitchChangedThisTick && state.period !== null && !state.portamento) {
             state.currentPeriod = state.period;
         }
 
@@ -249,6 +253,7 @@ export class Channel {
             const instrument = pending.instrument ?? this.state.instrument;
             const finetune = instrument?.finetune ?? 0;
             pending.period = note.period - finetune;
+            pending.portamentoTargetPeriod = pending.period;
             pending.refreshCurrentPeriod = true;
             pending.sampleIndex = 0;
             pending.publishNote = true;
@@ -271,6 +276,10 @@ export class Channel {
 
         if (pending.period !== undefined) {
             state.period = pending.period;
+        }
+
+        if (pending.portamentoTargetPeriod !== undefined) {
+            state.portamentoTargetPeriod = pending.portamentoTargetPeriod;
         }
 
         if (pending.refreshCurrentPeriod) {
@@ -314,6 +323,10 @@ export class Channel {
         if (pending.period !== undefined) {
             state.period = pending.period;
             state.currentPeriod = state.period;
+        }
+
+        if (pending.portamentoTargetPeriod !== undefined) {
+            state.portamentoTargetPeriod = pending.portamentoTargetPeriod;
         }
 
         state.sampleIndex = 0;
@@ -366,8 +379,10 @@ export class Channel {
                 }
                 state.portamentoSpeed = state.lastPortamentoSpeed;
                 state.periodDelta = state.lastPortamentoSpeed;
+                if (pending.portamentoTargetPeriod !== undefined) {
+                    pending.period = undefined;
+                }
                 pending.refreshCurrentPeriod = false;
-                pending.sampleIndex = undefined;
                 break;
             case this.VIBRATO: {
                 const speed = data >> 4;
@@ -390,21 +405,18 @@ export class Channel {
             case this.TONE_PORTAMENTO_WITH_VOLUME_SLIDE:
                 state.portamento = true;
                 pending.refreshCurrentPeriod = false;
-                pending.sampleIndex = undefined;
                 state.portamentoSpeed = state.lastPortamentoSpeed;
                 state.periodDelta = state.lastPortamentoSpeed;
-                if (data) {
-                    state.lastVolumeSlide = data;
+                if (pending.portamentoTargetPeriod !== undefined) {
+                    pending.period = undefined;
                 }
+                pending.sampleIndex = undefined;
                 this.setVolumeSlideFromData(data);
                 break;
             case this.VIBRATO_WITH_VOLUME_SLIDE:
                 state.vibrato = true;
                 state.vibratoSpeed = state.lastVibratoSpeed;
                 state.vibratoDepth = state.lastVibratoDepth;
-                if (data) {
-                    state.lastVolumeSlide = data;
-                }
                 this.setVolumeSlideFromData(data);
                 break;
             case this.ARPEGGIO:
