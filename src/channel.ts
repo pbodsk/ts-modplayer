@@ -18,7 +18,7 @@ type PlaybackChannelSnapshot = {
 
 type PendingRowChanges = {
     instrument?: Instrument | null;
-    volume?: number;
+    baseVolume?: number;
     period?: number;
     portamentoTargetPeriod?: number;
     sampleIndex?: number;
@@ -32,7 +32,7 @@ class ChannelState {
     portamentoTargetPeriod: number | null = null;
     sampleSpeed = 0.0;
     sampleIndex = 0;
-    volume = 64;
+    baseVolume = 64;
     currentVolume = 0;
     volumeSlide = 0;
     currentPeriod: number | null = null;
@@ -60,7 +60,7 @@ class ChannelState {
         this.portamentoTargetPeriod = null;
         this.sampleSpeed = 0;
         this.sampleIndex = 0;
-        this.volume = 64;
+        this.baseVolume = 64;
         this.currentVolume = 0;
         this.volumeSlide = 0;
         this.currentPeriod = null;
@@ -245,7 +245,7 @@ export class Channel {
         if (note.instrument) {
             pending.instrument = mod.instruments[note.instrument - 1] ?? null;
             if (pending.instrument) {
-                pending.volume = pending.instrument.volume;
+                pending.baseVolume = pending.instrument.volume;
             }
         }
 
@@ -269,9 +269,9 @@ export class Channel {
             state.instrument = pending.instrument;
         }
 
-        if (pending.volume !== undefined) {
-            state.volume = pending.volume;
-            state.currentVolume = state.volume;
+        if (pending.baseVolume !== undefined) {
+            state.baseVolume = pending.baseVolume;
+            state.currentVolume = state.baseVolume;
         }
 
         if (pending.period !== undefined) {
@@ -315,9 +315,9 @@ export class Channel {
             state.instrument = pending.instrument;
         }
 
-        if (pending.volume !== undefined) {
-            state.volume = pending.volume;
-            state.currentVolume = state.volume;
+        if (pending.baseVolume !== undefined) {
+            state.baseVolume = pending.baseVolume;
+            state.currentVolume = state.baseVolume;
         }
 
         if (pending.period !== undefined) {
@@ -356,7 +356,7 @@ export class Channel {
                 pending.sampleIndex = data * 256;
                 break;
             case this.SET_VOLUME:
-                pending.volume = data;
+                pending.baseVolume = data;
                 break;
             case this.PATTERN_BREAK: {
                 const row = (data >> 4) * 10 + (data & 0x0f);
@@ -381,6 +381,7 @@ export class Channel {
                 state.periodDelta = state.lastPortamentoSpeed;
                 if (pending.portamentoTargetPeriod !== undefined) {
                     pending.period = undefined;
+                    pending.sampleIndex = undefined;
                 }
                 pending.refreshCurrentPeriod = false;
                 break;
@@ -409,8 +410,8 @@ export class Channel {
                 state.periodDelta = state.lastPortamentoSpeed;
                 if (pending.portamentoTargetPeriod !== undefined) {
                     pending.period = undefined;
+                    pending.sampleIndex = undefined;
                 }
-                pending.sampleIndex = undefined;
                 this.setVolumeSlideFromData(data);
                 break;
             case this.VIBRATO_WITH_VOLUME_SLIDE:
@@ -429,10 +430,10 @@ export class Channel {
                 state.delayNoteTick = data;
                 break;
             case this.VOLUME_SLIDE_UP_FINE:
-                pending.volume = Math.min(64, state.volume + data);
+                pending.baseVolume = Math.min(64, state.currentVolume + data);
                 break;
             case this.VOLUME_SLIDE_DOWN_FINE:
-                pending.volume = Math.max(0, state.volume - data);
+                pending.baseVolume = Math.max(0, state.currentVolume - data);
                 break;
             default:
                 this.unimplementedEffects.add(id);
