@@ -24,7 +24,7 @@ export class PlayerWorklet extends AudioWorkletProcessor {
   private channels: Channel[];
   private mod: Mod | null = null;
   sampleRateValue = 0;
-  private bpm = 125;
+  private bpm = 32;
   private position = -1;
   private rowIndex = 63;
   tick = 0;
