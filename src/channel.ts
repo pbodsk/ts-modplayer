@@ -158,7 +158,7 @@ export class Channel {
             }
         }
 
-        if (state.periodDelta !== null && state.currentPeriod !== null && state.period !== null) {
+        if (this.worklet.tick > 0 && state.periodDelta !== null && state.currentPeriod !== null && state.period !== null) {
             if (state.portamento) {
                 const targetPeriod = state.portamentoTargetPeriod ?? state.period;
                 if (state.currentPeriod !== targetPeriod) {
@@ -214,8 +214,11 @@ export class Channel {
         state.sampleIndex += state.sampleSpeed;
 
         if (instrument.isLooped) {
-            if (state.sampleIndex >= instrument.repeatOffset + instrument.repeatLength) {
-                state.sampleIndex = instrument.repeatOffset;
+            const loopStart = instrument.repeatOffset;
+            const loopLength = instrument.repeatLength;
+            const loopEnd = loopStart + loopLength;
+            if (state.sampleIndex >= loopEnd) {
+                state.sampleIndex = loopStart + ((state.sampleIndex - loopStart) % loopLength);
             } else if (state.sampleIndex >= instrument.length) {
                 return 0.0;
             }
@@ -430,10 +433,10 @@ export class Channel {
                 state.delayNoteTick = data;
                 break;
             case this.VOLUME_SLIDE_UP_FINE:
-                pending.baseVolume = Math.min(64, state.currentVolume + data);
+                pending.baseVolume = Math.min(64, (pending.baseVolume ?? state.currentVolume) + data);
                 break;
             case this.VOLUME_SLIDE_DOWN_FINE:
-                pending.baseVolume = Math.max(0, state.currentVolume - data);
+                pending.baseVolume = Math.max(0, (pending.baseVolume ?? state.currentVolume) - data);
                 break;
             default:
                 this.unimplementedEffects.add(id);
