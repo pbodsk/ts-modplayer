@@ -183,7 +183,7 @@ export class Channel {
             pitchChangedThisTick = true;
         }
 
-        if (state.retrigger && (this.worklet.tick % state.retrigger) === 0) {
+        if (state.retrigger && this.worklet.tick > 0 && (this.worklet.tick % state.retrigger) === 0) {
             state.sampleIndex = 0;
         }
 
