@@ -20,106 +20,18 @@ const icons = {
     previous: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-skip-back-icon lucide-skip-back"><path d="M17.971 4.285A2 2 0 0 1 21 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z"/><path d="M3 20V4"/></svg>`
 }
 
-app.innerHTML = `
-    <main class="shell">
-        <section class="hero">
-            <div class="hero__copy">
-                <p class="eyebrow">Browser tracker deck</p>
-                <h1>MOD Player</h1>
-                <p class="lede">Play classic MODs, inspect all four channels live, and build a playlist from local files or direct download URLs.</p>
-            </div>
-            <div class="hero__status">
-                <span class="status-pill" data-role="transport-state">Idle</span>
-                <p class="status-message" data-role="status-message">Load a MOD to begin.</p>
-            </div>
-        </section>
-
-        <section class="panel transport">
-            <div class="transport__top">
-                <div>
-                    <p class="section-label">Now Playing</p>
-                    <h2 data-role="track-title">No track selected</h2>
-                    <p class="transport__meta" data-role="track-meta">Choose a local file or add a direct MOD URL.</p>
-                </div>
-                <div class="transport__buttons">
-                    <button type="button" data-action="previous" class="button-secondary">
-                        <span class="button-icon">${icons.previous}</span>
-                    </button>
-                    <button type="button" data-action="play-pause">
-                        <span class="button-icon" data-role="play-pause-icon">${icons.play}</span>
-                    </button>
-                    <button type="button" data-action="stop" class="button-secondary">
-                        <span class="button-icon">${icons.stop}</span>
-                    </button>
-                    <button type="button" data-action="next" class="button-secondary">
-                        <span class="button-icon">${icons.next}</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="transport__controls">
-                <label class="range-field">
-                    <span>Song position</span>
-                    <input type="range" min="0" max="0" value="0" step="1" data-role="scrubber">
-                    <small data-role="scrubber-label">Position 0, row 0</small>
-                </label>
-
-                <label class="range-field range-field--volume">
-                    <span>Master volume</span>
-                    <input type="range" min="0" max="100" value="100" step="1" data-role="volume">
-                    <small data-role="volume-label">100%</small>
-                </label>
-            </div>
-        </section>
-
-        <section class="stack">
-            <section class="panel panel--playlist">
-                <div class="panel__header">
-                    <div>
-                        <p class="section-label">Playlist</p>
-                        <h2>Queue</h2>
-                    </div>
-                    <p class="panel__caption" data-role="playlist-count">0 tracks</p>
-                </div>
-
-                <div class="playlist-actions">
-                    <label class="file-picker">
-                        <span>Add local files</span>
-                        <input type="file" accept=".mod,audio/mod" multiple data-role="file-input">
-                    </label>
-
-                    <form class="url-form" data-role="url-form">
-                        <input type="url" placeholder="https://..." data-role="url-input" required>
-                        <button type="submit">Add URL</button>
-                    </form>
-                </div>
-
-                <div class="playlist" data-role="playlist"></div>
-            </section>
-
-            <section class="panel">
-                <div class="panel__header">
-                    <div>
-                        <p class="section-label">Pattern View</p>
-                        <h2>Live Tracker Grid</h2>
-                    </div>
-                    <p class="panel__caption" data-role="position-label">Position 00 • Pattern 00 • Row 00</p>
-                </div>
-                <div class="tracker" data-role="tracker"></div>
-            </section>
-        </section>
-    </main>
-`;
-
 const transportStateEl = requireElement<HTMLElement>(app, '[data-role="transport-state"]');
 const statusMessageEl = requireElement<HTMLElement>(app, '[data-role="status-message"]');
 const trackTitleEl = requireElement<HTMLElement>(app, '[data-role="track-title"]');
 const trackMetaEl = requireElement<HTMLElement>(app, '[data-role="track-meta"]');
 const previousButton = requireElement<HTMLButtonElement>(app, '[data-action="previous"]');
+const previousIconEl = requireElement<HTMLElement>(app, '[data-role="previous-icon"]');
 const playPauseButton = requireElement<HTMLButtonElement>(app, '[data-action="play-pause"]');
 const playPauseIconEl = requireElement<HTMLElement>(app, '[data-role="play-pause-icon"]');
 const stopButton = requireElement<HTMLButtonElement>(app, '[data-action="stop"]');
+const stopIconEl = requireElement<HTMLElement>(app, '[data-role="stop-icon"]');
 const nextButton = requireElement<HTMLButtonElement>(app, '[data-action="next"]');
+const nextIconEl = requireElement<HTMLElement>(app, '[data-role="next-icon"]');
 const scrubber = requireElement<HTMLInputElement>(app, '[data-role="scrubber"]');
 const scrubberLabel = requireElement<HTMLElement>(app, '[data-role="scrubber-label"]');
 const volumeInput = requireElement<HTMLInputElement>(app, '[data-role="volume"]');
@@ -131,6 +43,17 @@ const playlistEl = requireElement<HTMLElement>(app, '[data-role="playlist"]');
 const fileInput = requireElement<HTMLInputElement>(app, '[data-role="file-input"]');
 const urlForm = requireElement<HTMLFormElement>(app, '[data-role="url-form"]');
 const urlInput = requireElement<HTMLInputElement>(app, '[data-role="url-input"]');
+const playlistEmptyTemplate = requireTemplate("playlist-empty-template");
+const playlistItemTemplate = requireTemplate("playlist-item-template");
+const trackerEmptyTemplate = requireTemplate("tracker-empty-template");
+const trackerFrameTemplate = requireTemplate("tracker-frame-template");
+const trackerRowTemplate = requireTemplate("tracker-row-template");
+const trackerBlankRowTemplate = requireTemplate("tracker-blank-row-template");
+
+previousIconEl.innerHTML = icons.previous;
+playPauseIconEl.innerHTML = icons.play;
+stopIconEl.innerHTML = icons.stop;
+nextIconEl.innerHTML = icons.next;
 
 previousButton.addEventListener("click", async () => {
     await controller.playPreviousTrack();
@@ -215,10 +138,9 @@ function renderState(state: PlayerControllerState) {
     positionLabel.textContent = state.currentPattern
         ? `Position ${state.currentPattern.position} • Pattern ${state.currentPattern.patternIndex} • Row ${state.playback.rowIndex}`
         : `Position ${state.playback.position} • Pattern -- • Row ${state.playback.rowIndex}`;
-    trackerEl.innerHTML = renderTracker(state);
+    renderTracker(state);
 
     renderPlaylist(state);
-
 }
 
 function statusMessage(state: PlayerControllerState) {
@@ -248,20 +170,12 @@ function buildMetaLabel(state: PlayerControllerState) {
 
 function renderTracker(state: PlayerControllerState) {
     if (!state.currentPattern) {
-        return `<p class="tracker__empty">Load a MOD to see its active pattern rendered tracker-style.</p>`;
+        trackerEl.replaceChildren(cloneTemplateRoot(trackerEmptyTemplate));
+        return;
     }
 
-    const header = `
-        <div class="tracker__row tracker__row--header">
-            <span class="tracker__gutter">Row</span>
-            <span class="tracker__channel-heading">Channel 1</span>
-            <span class="tracker__channel-heading">Channel 2</span>
-            <span class="tracker__channel-heading">Channel 3</span>
-            <span class="tracker__channel-heading">Channel 4</span>
-        </div>
-    `;
-
-    const rows: string[] = [];
+    const frame = cloneTemplateRoot<HTMLElement>(trackerFrameTemplate);
+    const body = requireElement<HTMLElement>(frame, '[data-role="tracker-body"]');
 
     for (let offset = -TRACKER_CONTEXT_ROWS; offset <= TRACKER_CONTEXT_ROWS; offset += 1) {
         const targetRowIndex = state.playback.rowIndex + offset;
@@ -269,34 +183,14 @@ function renderTracker(state: PlayerControllerState) {
         const active = offset === 0;
 
         if (!row) {
-            rows.push(`
-                <div class="tracker__row tracker__row--blank ${active ? "tracker__row--active" : ""}">
-                    <span class="tracker__gutter">..</span>
-                    <span class="tracker__cell tracker__cell--blank">... .. ...</span>
-                    <span class="tracker__cell tracker__cell--blank">... .. ...</span>
-                    <span class="tracker__cell tracker__cell--blank">... .. ...</span>
-                    <span class="tracker__cell tracker__cell--blank">... .. ...</span>
-                </div>
-            `);
+            body.append(createBlankTrackerRow(active));
             continue;
         }
 
-        rows.push(`
-            <div class="tracker__row ${active ? "tracker__row--active" : ""}">
-                <span class="tracker__gutter">${row.rowIndex}</span>
-                ${row.channels.map(channel => `<span class="tracker__cell">${channel.note} ${channel.sample} ${channel.effect}</span>`).join("")}
-            </div>
-        `);
+        body.append(createTrackerRow(row, active));
     }
 
-    return `
-        <div class="tracker__frame">
-            ${header}
-            <div class="tracker__body">
-                ${rows.join("")}
-            </div>
-        </div>
-    `;
+    trackerEl.replaceChildren(frame);
 }
 
 function renderPlaylist(state: PlayerControllerState) {
@@ -313,17 +207,33 @@ function renderPlaylist(state: PlayerControllerState) {
 
     playlistRenderKey = nextRenderKey;
 
-    playlistEl.innerHTML = state.playlist.length === 0
-        ? `<p class="playlist__empty">No tracks yet. Add a local MOD or direct URL to start building the queue.</p>`
-        : state.playlist.map((entry, index) => `
-            <article class="playlist-item ${index === state.activeIndex ? "playlist-item--active" : ""} ${!entry.available ? "playlist-item--disabled" : ""}" draggable="true" data-playlist-index="${index}">
-                <button type="button" class="playlist-item__select" data-action="select-track" data-index="${index}">
-                    <span class="playlist-item__name">${entry.name}</span>
-                    <span class="playlist-item__meta">${entry.kind === "local" ? "Local file" : "Remote URL"}${!entry.available ? " • Re-add required" : ""}</span>
-                </button>
-                <button type="button" class="playlist-item__remove" data-action="remove-track" data-index="${index}" aria-label="Remove ${entry.name}">Remove</button>
-            </article>
-        `).join("");
+    if (state.playlist.length === 0) {
+        playlistEl.replaceChildren(cloneTemplateRoot(playlistEmptyTemplate));
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    state.playlist.forEach((entry, index) => {
+        const item = cloneTemplateRoot<HTMLElement>(playlistItemTemplate);
+        const selectButton = requireElement<HTMLButtonElement>(item, '[data-action="select-track"]');
+        const removeButton = requireElement<HTMLButtonElement>(item, '[data-action="remove-track"]');
+        const nameEl = requireElement<HTMLElement>(item, '[data-role="playlist-item-name"]');
+        const metaEl = requireElement<HTMLElement>(item, '[data-role="playlist-item-meta"]');
+
+        item.dataset.playlistIndex = String(index);
+        item.classList.toggle("playlist-item--active", index === state.activeIndex);
+        item.classList.toggle("playlist-item--disabled", !entry.available);
+        selectButton.dataset.index = String(index);
+        removeButton.dataset.index = String(index);
+        removeButton.setAttribute("aria-label", `Remove ${entry.name}`);
+        nameEl.textContent = entry.name;
+        metaEl.textContent = `${entry.kind === "local" ? "Local file" : "Remote URL"}${!entry.available ? " • Re-add required" : ""}`;
+
+        fragment.append(item);
+    });
+
+    playlistEl.replaceChildren(fragment);
 
     playlistEl.querySelectorAll<HTMLButtonElement>('[data-action="select-track"]').forEach(button => {
         button.addEventListener("click", async () => {
@@ -388,6 +298,32 @@ function renderPlaylist(state: PlayerControllerState) {
     });
 }
 
+function createTrackerRow(row: NonNullable<PlayerControllerState["currentPattern"]>["rows"][number], active: boolean) {
+    const element = cloneTemplateRoot<HTMLElement>(trackerRowTemplate);
+    const rowIndexEl = requireElement<HTMLElement>(element, '[data-role="tracker-row-index"]');
+    const cells = element.querySelectorAll<HTMLElement>('[data-role="tracker-cell"]');
+
+    element.classList.toggle("tracker__row--active", active);
+    rowIndexEl.textContent = String(row.rowIndex);
+
+    row.channels.forEach((channel, index) => {
+        const cell = cells[index];
+        if (!cell) {
+            return;
+        }
+
+        cell.textContent = `${channel.note} ${channel.sample} ${channel.effect}`;
+    });
+
+    return element;
+}
+
+function createBlankTrackerRow(active: boolean) {
+    const element = cloneTemplateRoot<HTMLElement>(trackerBlankRowTemplate);
+    element.classList.toggle("tracker__row--active", active);
+    return element;
+}
+
 function capitalize(value: string) {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -403,4 +339,23 @@ function requireElement<T extends Element>(parent: ParentNode, selector: string)
     }
 
     return element;
+}
+
+function requireTemplate(id: string) {
+    const template = document.getElementById(id);
+    if (!(template instanceof HTMLTemplateElement)) {
+        throw new Error(`Missing required template: ${id}`);
+    }
+
+    return template;
+}
+
+function cloneTemplateRoot<T extends Element>(template: HTMLTemplateElement) {
+    const fragment = template.content.cloneNode(true) as DocumentFragment;
+    const element = fragment.firstElementChild;
+    if (!element) {
+        throw new Error(`Template has no root element: ${template.id}`);
+    }
+
+    return element as T;
 }
