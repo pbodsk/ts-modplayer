@@ -213,8 +213,8 @@ function renderState(state: PlayerControllerState) {
     volumeLabel.textContent = `${Math.round(state.masterVolume * 100)}%`;
 
     positionLabel.textContent = state.currentPattern
-        ? `Position ${formatHex(state.currentPattern.position)} • Pattern ${formatHex(state.currentPattern.patternIndex)} • Row ${formatHex(state.playback.rowIndex)}`
-        : `Position ${formatHex(state.playback.position)} • Pattern -- • Row ${formatHex(state.playback.rowIndex)}`;
+        ? `Position ${state.currentPattern.position} • Pattern ${state.currentPattern.patternIndex} • Row ${state.playback.rowIndex}`
+        : `Position ${state.playback.position} • Pattern -- • Row ${state.playback.rowIndex}`;
     trackerEl.innerHTML = renderTracker(state);
 
     renderPlaylist(state);
@@ -283,7 +283,7 @@ function renderTracker(state: PlayerControllerState) {
 
         rows.push(`
             <div class="tracker__row ${active ? "tracker__row--active" : ""}">
-                <span class="tracker__gutter">${formatHex(row.rowIndex)}</span>
+                <span class="tracker__gutter">${row.rowIndex}</span>
                 ${row.channels.map(channel => `<span class="tracker__cell">${channel.note} ${channel.sample} ${channel.effect}</span>`).join("")}
             </div>
         `);
