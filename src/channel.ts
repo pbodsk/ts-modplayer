@@ -51,6 +51,8 @@ class ChannelState {
     lastPortamentoSpeed = 0;
     lastVibratoSpeed = 0;
     lastVibratoDepth = 0;
+    queuedInstrument: Instrument | null | undefined = undefined;
+    queuedSampleIndex: number | undefined = undefined;
     vibratoWaveform = 0;
     vibratoRetrigger = true;
 
@@ -79,6 +81,8 @@ class ChannelState {
         this.lastPortamentoSpeed = 0;
         this.lastVibratoSpeed = 0;
         this.lastVibratoDepth = 0;
+        this.queuedInstrument = undefined;
+        this.queuedSampleIndex = undefined;
         this.vibratoWaveform = 0;
         this.vibratoRetrigger = true;
     }
@@ -121,6 +125,7 @@ export class Channel {
     play(note: Note, mod: Mod): void {
         const pending = this.createPendingRowChanges(note, mod);
         const hasNewNote = note.period !== 0;
+        const hasInstrument = note.instrument !== 0;
         this.resetRowEffects();
 
         this.state.currentEffectCode = note.effect ? this.normalizedEffectCode(note.effect) : null;
@@ -131,6 +136,12 @@ export class Channel {
 
         if (note.effect) {
             this.applyEffect(note.effect, pending);
+        }
+
+        if (!hasNewNote && hasInstrument && this.state.currentEffectCode === this.SAMPLE_OFFSET) {
+            this.state.queuedInstrument = pending.instrument;
+            this.state.queuedSampleIndex = pending.sampleIndex;
+            return;
         }
 
         if (this.state.delayNoteTick !== null) {
@@ -250,6 +261,12 @@ export class Channel {
             if (pending.instrument) {
                 pending.baseVolume = pending.instrument.volume;
             }
+            if (note.period) {
+                this.state.queuedInstrument = undefined;
+                this.state.queuedSampleIndex = undefined;
+            }
+        } else if (note.period && this.state.queuedInstrument !== undefined) {
+            pending.instrument = this.state.queuedInstrument;
         }
 
         if (note.period) {
@@ -258,7 +275,7 @@ export class Channel {
             pending.period = note.period - finetune;
             pending.portamentoTargetPeriod = pending.period;
             pending.refreshCurrentPeriod = true;
-            pending.sampleIndex = 0;
+            pending.sampleIndex = this.state.queuedSampleIndex ?? 0;
             pending.publishNote = true;
         }
 
@@ -291,6 +308,11 @@ export class Channel {
 
         if (pending.sampleIndex !== undefined) {
             state.sampleIndex = pending.sampleIndex;
+        }
+
+        if (pending.publishNote) {
+            state.queuedInstrument = undefined;
+            state.queuedSampleIndex = undefined;
         }
 
         if (this.worklet.publishNote && pending.publishNote) {
@@ -332,9 +354,11 @@ export class Channel {
             state.portamentoTargetPeriod = pending.portamentoTargetPeriod;
         }
 
-        state.sampleIndex = 0;
+        state.sampleIndex = pending.sampleIndex ?? 0;
         state.deferredRowChanges = null;
         state.delayNoteTick = null;
+        state.queuedInstrument = undefined;
+        state.queuedSampleIndex = undefined;
     }
 
     private applyEffect(raw: number, pending: PendingRowChanges) {
