@@ -4,13 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOD Player</title>
-  <script type="module" crossorigin src="/assets/index-DKTLZiKV.js"></script>
+  <script type="module" crossorigin src="/assets/index-Cnxy7S9K.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dum8R2Sf.css">
 </head>
 <body>
-    <h1>MOD Player Playground</h1>
-    <button id="btnLoad" type="button">Load</button>
-    <button id="btnPlay" type="button">Play</button>
-    <button id="btnStop" type="button">Stop</button>
-    <button id="btnUnload" type="button">Unload</button>
+    <div id="app">
+        <main class="shell">
+            <section class="hero">
+                <div class="hero__copy">
+                    <p class="eyebrow">Browser tracker deck</p>
+                    <h1>MOD Player</h1>
+                    <p class="lede">Play classic MODs, inspect all four channels live, and build a playlist from local files or direct download URLs.</p>
+                </div>
+                <div class="hero__status">
+                    <span class="status-pill" data-role="transport-state">Idle</span>
+                    <p class="status-message" data-role="status-message">Load a MOD to begin.</p>
+                </div>
+            </section>
+
+            <section class="panel transport">
+                <div class="transport__top">
+                    <div>
+                        <p class="section-label">Now Playing</p>
+                        <h2 data-role="track-title">No track selected</h2>
+                        <p class="transport__meta" data-role="track-meta">Choose a local file or add a direct MOD URL.</p>
+                    </div>
+                    <div class="transport__buttons">
+                        <button type="button" data-action="previous" class="button-secondary">
+                            <span class="button-icon" data-role="previous-icon"></span>
+                        </button>
+                        <button type="button" data-action="play-pause">
+                            <span class="button-icon" data-role="play-pause-icon"></span>
+                        </button>
+                        <button type="button" data-action="stop" class="button-secondary">
+                            <span class="button-icon" data-role="stop-icon"></span>
+                        </button>
+                        <button type="button" data-action="next" class="button-secondary">
+                            <span class="button-icon" data-role="next-icon"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="transport__controls">
+                    <label class="range-field">
+                        <span>Song position</span>
+                        <input type="range" min="0" max="0" value="0" step="1" data-role="scrubber">
+                        <small data-role="scrubber-label">Position 0, row 0</small>
+                    </label>
+
+                    <label class="range-field range-field--volume">
+                        <span>Master volume</span>
+                        <input type="range" min="0" max="100" value="100" step="1" data-role="volume">
+                        <small data-role="volume-label">100%</small>
+                    </label>
+                </div>
+            </section>
+
+            <section class="stack">
+                <section class="panel panel--playlist">
+                    <div class="panel__header">
+                        <div>
+                            <p class="section-label">Playlist</p>
+                            <h2>Queue</h2>
+                        </div>
+                        <p class="panel__caption" data-role="playlist-count">0 tracks</p>
+                    </div>
+
+                    <div class="playlist-actions">
+                        <label class="file-picker">
+                            <span>Add local files</span>
+                            <input type="file" accept=".mod,audio/mod" multiple data-role="file-input">
+                        </label>
+
+                        <form class="url-form" data-role="url-form">
+                            <input type="url" placeholder="https://..." data-role="url-input" required>
+                            <button type="submit">Add URL</button>
+                        </form>
+                    </div>
+
+                    <div class="playlist" data-role="playlist"></div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel__header">
+                        <div>
+                            <p class="section-label">Pattern View</p>
+                            <h2>Live Tracker Grid</h2>
+                        </div>
+                        <p class="panel__caption" data-role="position-label">Position 00 &bull; Pattern 00 &bull; Row 00</p>
+                    </div>
+                    <div class="tracker" data-role="tracker"></div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <template id="playlist-empty-template">
+        <p class="playlist__empty">No tracks yet. Add a local MOD or direct URL to start building the queue.</p>
+    </template>
+
+    <template id="playlist-item-template">
+        <article class="playlist-item" draggable="true" data-playlist-index="">
+            <button type="button" class="playlist-item__select" data-action="select-track" data-index="">
+                <span class="playlist-item__name" data-role="playlist-item-name"></span>
+                <span class="playlist-item__meta" data-role="playlist-item-meta"></span>
+            </button>
+            <button type="button" class="playlist-item__remove" data-action="remove-track" data-index="">Remove</button>
+        </article>
+    </template>
+
+    <template id="tracker-empty-template">
+        <p class="tracker__empty">Load a MOD to see its active pattern rendered tracker-style.</p>
+    </template>
+
+    <template id="tracker-frame-template">
+        <div class="tracker__frame">
+            <div class="tracker__row tracker__row--header">
+                <span class="tracker__gutter">Row</span>
+                <span class="tracker__channel-heading">Channel 1</span>
+                <span class="tracker__channel-heading">Channel 2</span>
+                <span class="tracker__channel-heading">Channel 3</span>
+                <span class="tracker__channel-heading">Channel 4</span>
+            </div>
+            <div class="tracker__body" data-role="tracker-body"></div>
+        </div>
+    </template>
+
+    <template id="tracker-row-template">
+        <div class="tracker__row">
+            <span class="tracker__gutter" data-role="tracker-row-index"></span>
+            <span class="tracker__cell" data-role="tracker-cell"></span>
+            <span class="tracker__cell" data-role="tracker-cell"></span>
+            <span class="tracker__cell" data-role="tracker-cell"></span>
+            <span class="tracker__cell" data-role="tracker-cell"></span>
+        </div>
+    </template>
+
+    <template id="tracker-blank-row-template">
+        <div class="tracker__row tracker__row--blank">
+            <span class="tracker__gutter">..</span>
+            <span class="tracker__cell tracker__cell--blank">... .. ...</span>
+            <span class="tracker__cell tracker__cell--blank">... .. ...</span>
+            <span class="tracker__cell tracker__cell--blank">... .. ...</span>
+            <span class="tracker__cell tracker__cell--blank">... .. ...</span>
+        </div>
+    </template>
+
 </body>
 </html>

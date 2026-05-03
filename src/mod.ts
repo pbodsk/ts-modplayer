@@ -90,12 +90,15 @@ class Pattern {
 }
 
 export class Mod {
+    title: string;
     patternTable: Uint8Array;
     instruments: Array<Instrument>;
     patterns: Array<Pattern>;
     length: number;
 
     constructor(modfile: ArrayBuffer) {
+        const titleBytes = new Uint8Array(modfile, 0, 20);
+        this.title = String.fromCodePoint(...titleBytes.filter(a => !!a)).trim();
         this.length = new Uint8Array(modfile, 950, 1)[0];
 
         // Store pattern table

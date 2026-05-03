@@ -1,9 +1,19 @@
 import { Mod } from './mod.js';
 
-// Load MOD file from an URL
-export const loadMod = async (url: URL) => {
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    const mod = new Mod(arrayBuffer);
-    return mod;
+export type ModSource = URL | File;
+
+const loadArrayBuffer = async (source: ModSource) => {
+    if (source instanceof URL) {
+        const response = await fetch(source);
+        const arrayBuffer = await response.arrayBuffer();
+        return arrayBuffer;
+    }
+
+    return source.arrayBuffer();
+};
+
+// Load MOD file from a browser-supported source.
+export const loadMod = async (source: ModSource) => {
+    const arrayBuffer = await loadArrayBuffer(source);
+    return new Mod(arrayBuffer);
 };
